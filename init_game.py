@@ -51,9 +51,21 @@ def init_game():
     game.set_render_screen_flashes(True)  # Effect upon taking damage or picking up items
 
     # Adds buttons that will be allowed.
-    game.add_available_button(vzd.Button.MOVE_LEFT)
-    game.add_available_button(vzd.Button.MOVE_RIGHT)
     game.add_available_button(vzd.Button.ATTACK)
+    game.add_available_button(vzd.Button.USE)
+    game.add_available_button(vzd.Button.SPEED)
+    game.add_available_button(vzd.Button.MOVE_RIGHT)
+    game.add_available_button(vzd.Button.MOVE_LEFT)
+    game.add_available_button(vzd.Button.MOVE_BACKWARD)
+    game.add_available_button(vzd.Button.MOVE_FORWARD)
+    game.add_available_button(vzd.Button.SELECT_WEAPON1)
+    game.add_available_button(vzd.Button.SELECT_WEAPON2)
+    game.add_available_button(vzd.Button.SELECT_WEAPON3)
+    game.add_available_button(vzd.Button.SELECT_WEAPON4)
+    game.add_available_button(vzd.Button.SELECT_WEAPON5)
+    game.add_available_button(vzd.Button.SELECT_WEAPON6)
+    game.add_available_button(vzd.Button.SELECT_WEAPON7)
+    game.add_available_button(vzd.Button.TURN_LEFT_RIGHT_DELTA, 100)
 
     # Adds game variables that will be included in state.
     game.add_available_game_variable(vzd.GameVariable.AMMO2)
