@@ -62,4 +62,12 @@ class Model:
 			optimizer=keras.optimizers.Adam()
 		)
 
-	
+	def train_batch(self, x, y):
+		self.model.train_on_batch(x, y)
+
+	def predict_action(self, x):
+		prediction = self.model.predict(x)[0]
+		action = np.where(prediction > 0.0, True, False).tolist()
+		action[14] = prediction[14]*100.0
+		#print(action)
+		return action
