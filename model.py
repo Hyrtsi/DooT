@@ -8,9 +8,9 @@ from collections import deque
 import random
 
 class Model:
-	def __init__(self, reward):
+	def __init__(self, reward, n_channels=1):
 		self.initializer = initializers.RandomNormal(stddev=0.04)
-		self.create_model(1)
+		self.n_channels = n_channels
 
 		self.reward = reward
 		self.memory = deque(maxlen=2000)
@@ -19,6 +19,23 @@ class Model:
 		self.epsilon_min = 0.01
 		self.epsilon_decay = 0.995
 		self.learning_rate = 0.005
+		self.tau = 0.05
+		self.batch_size = 32
+
+		"""
+		Prevent catastrophic forgetting by using separate target model
+
+		TODO: could we just init by making a deep copy?
+
+		The target model outputs the best possible Q-value for the given state
+		The normal model outputs action for the given state
+
+		The amount of q-values per state happens to be same than amount of actions
+		so the models are of the same size and architecture
+		"""
+		self.model = self.create_model(self.n_channels)
+		self.target_model = self.create_model(self.n_channels)
+
 
 	def create_model(self, n_channels):
 		inputs = keras.Input(shape=(240, 320, n_channels))
@@ -64,13 +81,15 @@ class Model:
 		x = layers.BatchNormalization(axis=-1)(x)
 		outputs = layers.Dense(15, activation="tanh")(x)
 
-		self.model = keras.Model(inputs=inputs, outputs=outputs)
-		self.model.summary()
+		model = keras.Model(inputs=inputs, outputs=outputs)
+		model.summary()
 
-		self.model.compile(
+		model.compile(
 			loss="mean_squared_error",
-			optimizer=keras.optimizers.Adam()
+			optimizer=keras.optimizers.Adam(lr=self.learning_rate)
 		)
+
+		return model
 
 	def train_batch(self, x, y):
 		self.model.train_on_batch(x, y)
@@ -79,6 +98,12 @@ class Model:
 	return: list length of 15: 14 booleans and 1 float
 	"""
 	def predict_action(self, x):
+
+		foo = np.argmax(self.model.predict(x)[0])
+		print("foo")
+		print(foo)
+
+
 		prediction = self.model.predict(x)[0]
 		action = np.where(prediction > 0.0, True, False).tolist()
 		action[14] = prediction[14]*100.0
@@ -131,7 +156,7 @@ class Model:
 			bufu = game.get_state().screen_buffer
 		self.remember(screen_buf, action, reward, bufu, done)
 
-		#self.replay()
+		self.replay()
 
 		return reward
 
@@ -142,22 +167,41 @@ class Model:
 	def remember(self, state, action, reward, new_state, done):
 		self.memory.append([state, action, reward, new_state, done])
 
+	"""
+	IF we don't have batch_size amount of samples in memory,
+	continue gathering memories and do not train the model yet
+
+	ELSE sample randomly from all memories
+	Use experience replay to update the actual model
+	with out best known actions for each state
+	"""
 	def replay(self):
-		batch_size = 32
-		if len(self.memory) < batch_size: 
+		if len(self.memory) < self.batch_size: 
 			return
 
-		samples = random.sample(self.memory, batch_size)
+		samples = random.sample(self.memory, self.batch_size)
 		for sample in samples:
 			state, action, reward, new_state, done = sample
-			target = self.model.predict(state)
+			
+			# Get the Q-value from target model
+			target = self.target_model.predict(state)
+			print("-aaa")
+			print(len(target))
+			print(target)
+			print("---")
+			# This comes from the experience replay algorithm
+			# 
 			if done:
 				target[0][action] = reward
 			else:
 				# Maximum q-value for s'
 				Q_future = max(self.model.predict(new_state)[0])
 				target[0][action] = reward + Q_future * self.gamma
-			self.model.fit(state, target, epochs=1, verbose=0)
+			
+
+			# target actions for the state
+			# as in, the best known actions for the state ...
+			self.model.fit(state, target_actions, epochs=1, verbose=0)
 
 	def save_model(self, filename):
 		self.model.save(filename)

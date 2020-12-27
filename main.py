@@ -39,8 +39,7 @@ def main():
     print("Player start pos:", player_start_pos)
 
     reward_controller = Reward(player_start_pos)
-    model = Model(reward_controller)
-
+    model = Model(reward_controller,n_channels=game.get_screen_channels())
     episode_mean_rewards = []
 
     print()
